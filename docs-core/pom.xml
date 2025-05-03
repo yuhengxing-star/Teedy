@@ -9,11 +9,24 @@
     <relativePath>../pom.xml</relativePath>
   </parent>
 
+  <properties>
+    <pmd.ruleset.location>${project.parent.basedir}/ruleset.xml</pmd.ruleset.location>
+  </properties>
+
   <modelVersion>4.0.0</modelVersion>
   <artifactId>docs-core</artifactId>
   <packaging>jar</packaging>
   <name>Docs Core</name>
 
+
+
+  <distributionManagement>
+    <site>
+      <id>local</id>
+      <url>file:${project.build.directory}/site</url>
+    </site>
+  </distributionManagement>
+  
   <dependencies>
     <!-- Persistence layer dependencies -->
     <dependency>

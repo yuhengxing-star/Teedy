@@ -9,10 +9,22 @@
     <relativePath>../pom.xml</relativePath>
   </parent>
   
+    <properties>
+      <pmd.ruleset.location>${project.parent.basedir}/ruleset.xml</pmd.ruleset.location>
+    </properties>
+
   <modelVersion>4.0.0</modelVersion>
   <artifactId>docs-web-common</artifactId>
   <packaging>jar</packaging>
   <name>Docs Web Commons</name>
+
+  <distributionManagement>
+    <site>
+      <id>local</id>
+      <url>file:${project.build.directory}/site</url>
+    </site>
+  </distributionManagement>
+  
 
   <dependencies>
     <!-- Dependencies to Docs -->

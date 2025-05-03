@@ -11,6 +11,7 @@
   <name>Docs Parent</name>
 
   <properties>
+    <pmd.ruleset.location>${project.basedir}/ruleset.xml</pmd.ruleset.location>
     <maven.compiler.source>11</maven.compiler.source>
     <maven.compiler.target>11</maven.compiler.target>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -81,8 +82,102 @@
     </repository>
   </repositories>
 
+<reporting>
+  <plugins>
+    <plugin>
+      <groupId>org.apache.maven.plugins</groupId>
+      <artifactId>maven-pmd-plugin</artifactId>
+      <version>3.20.0</version>
+      <configuration>
+        <rulesets>
+          <ruleset>${pmd.ruleset.location}</ruleset>
+        </rulesets>
+      </configuration>
+    </plugin>
+
+    <plugin>
+      <groupId>org.apache.maven.plugins</groupId>
+      <artifactId>maven-javadoc-plugin</artifactId>
+      <version>3.6.3</version>
+      <configuration>
+        <failOnError>false</failOnError>
+      </configuration>
+      <reportSets>
+        <reportSet>
+          <id>aggregate</id>
+          <inherited>false</inherited>
+          <reports>
+            <report>aggregate</report>
+          </reports>
+        </reportSet>
+        <reportSet>
+          <id>default</id>
+          <reports>
+            <report>javadoc</report>
+          </reports>
+        </reportSet>
+      </reportSets>
+    </plugin>
+  </plugins>
+</reporting>
+
+
+
   <build>
     <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <version>3.6.3</version>
+        <configuration>
+          <failOnError>false</failOnError>
+        </configuration>
+        <executions>
+          <execution>
+            <id>aggregate</id>
+            <goals>
+              <goal>aggregate</goal>
+            </goals>
+            <phase>site</phase>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <version>0.8.9</version>
+        <executions>
+            <execution>
+                <goals>
+                    <goal>prepare-agent</goal> 
+                </goals>
+            </execution>
+            <execution>
+                <id>report</id>
+                <phase>test</phase> 
+                <goals>
+                    <goal>report</goal>
+                </goals>
+            </execution>
+        </executions>
+      </plugin>
+
+
+
+
+      <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-pmd-plugin</artifactId>
+          <version>3.20.0</version>
+          <configuration>
+              <rulesets>
+                  <ruleset>${project.basedir}/ruleset.xml</ruleset>
+              </rulesets>
+              <failOnViolation>false</failOnViolation>
+          </configuration> 
+      </plugin>
+
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-antrun-plugin</artifactId>
@@ -116,6 +211,23 @@
         <artifactId>jetty-maven-plugin</artifactId>
         <version>${org.eclipse.jetty.jetty-maven-plugin.version}</version>
       </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-site-plugin</artifactId>
+        <version>3.12.1</version>
+        <dependencies>
+          <dependency>
+            <groupId>org.apache.maven.doxia</groupId>
+            <artifactId>doxia-site-renderer</artifactId>
+            <version>1.11.1</version>
+          </dependency>
+        </dependencies>
+      </plugin>
+
+
+      
+
     </plugins>
   </build>
 
@@ -124,6 +236,13 @@
     <module>docs-web-common</module>
     <module>docs-web</module>
   </modules>
+
+  <distributionManagement>
+    <site>
+      <id>local</id>
+      <url>file:${project.build.directory}/site</url>
+    </site>
+  </distributionManagement>
 
   <dependencyManagement>
     <dependencies>

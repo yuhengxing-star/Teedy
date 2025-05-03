@@ -142,6 +142,9 @@ module.exports = function(grunt) {
     },
     apidoc: {
       generate: {
+        options: {
+          debug: true  // 显示详细解析错误
+        },
         src: '../java/',
         dest: 'dist/apidoc/'
       }
