@@ -11,7 +11,7 @@
   <name>Docs Parent</name>
 
   <properties>
-    <pmd.ruleset.location>${project.basedir}/ruleset.xml</pmd.ruleset.location>
+    <pmd.ruleset.location>/mnt/d/SoftwareEngineering/lab/Teedy/ruleset.xml</pmd.ruleset.location>
     <maven.compiler.source>11</maven.compiler.source>
     <maven.compiler.target>11</maven.compiler.target>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -172,7 +172,7 @@
           <version>3.20.0</version>
           <configuration>
               <rulesets>
-                  <ruleset>${project.basedir}/ruleset.xml</ruleset>
+                  <ruleset>/mnt/d/SoftwareEngineering/lab/Teedy/ruleset.xml</ruleset>
               </rulesets>
               <failOnViolation>false</failOnViolation>
           </configuration> 
