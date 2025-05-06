@@ -9,7 +9,7 @@ pipeline {
         stage('Build') {
             steps {
                 checkout scmGit(
-                    branches: [[name: '*/lab11']],
+                    branches: [[name: '*/docker']],
                     extensions: [],
                     userRemoteConfigs: [[url: 'https://github.com/yuhengxing-star/Teedy.git']]
                 )
