@@ -254,4 +254,32 @@ angular.module('docs').controller('DocumentViewContent', function ($scope, $root
       $scope.translatingTxt = false;
     });
   };
+
+  $scope.translatedFile = null;
+  $scope.translatingFile = false;
+  $scope.translateFileError = null;
+  $scope.translateFile = function() {
+    var fileInput = document.getElementById('anyFile');
+    if (!fileInput.files.length) {
+      $scope.translateFileError = '请选择文件';
+      return;
+    }
+    var file = fileInput.files[0];
+    $scope.translatingFile = true;
+    $scope.translateFileError = null;
+    Upload.upload({
+      url: '../api/document/translate_file',
+      data: {
+        file: file,
+        lang: $scope.selectedLang || 'en'
+      }
+    }).then(function(resp) {
+      $scope.translatedFile = resp.data.translated_text;
+      $scope.translatingFile = false;
+    }, function(err) {
+      $scope.translatedFile = null;
+      $scope.translateFileError = '翻译失败: ' + (err.data && err.data.message ? err.data.message : '');
+      $scope.translatingFile = false;
+    });
+  };
 });

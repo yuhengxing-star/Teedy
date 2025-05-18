@@ -20,8 +20,8 @@
   <span ng-bind-html="translatedDescription"></span>
 </p>
 <div class="form-inline mb-10">
-  <label for="txtFile">上传TXT文件：</label>
-  <input type="file" id="txtFile" accept=".txt" />
+  <label for="anyFile">上传文件（txt/docx/pdf）：</label>
+  <input type="file" id="anyFile" accept=".txt,.docx,.pdf" />
   <select class="form-control" ng-model="selectedLang">
     <option value="zh">中文</option>
     <option value="en">English</option>
@@ -29,15 +29,15 @@
     <option value="de">Deutsch</option>
     <option value="jp">日本語</option>
   </select>
-  <button class="btn btn-success" ng-click="translateTxtFile()" ng-disabled="translatingTxt">
-    <span ng-if="!translatingTxt">翻译TXT文件</span>
-    <span ng-if="translatingTxt"><span class="fas fa-spin fa-circle-notch"></span> 翻译中...</span>
+  <button class="btn btn-success" ng-click="translateFile()" ng-disabled="translatingFile">
+    <span ng-if="!translatingFile">翻译文件</span>
+    <span ng-if="translatingFile"><span class="fas fa-spin fa-circle-notch"></span> 翻译中...</span>
   </button>
-  <span class="text-danger ml-10" ng-if="translateTxtError">{{ translateTxtError }}</span>
+  <span class="text-danger ml-10" ng-if="translateFileError">{{ translateFileError }}</span>
 </div>
-<pre class="well well-sm bg-info" ng-if="translatedTxt">
-  <b>TXT翻译结果：</b>
-  <br>{{ translatedTxt }}
+<pre class="well well-sm bg-info" ng-if="translatedFile">
+  <b>文件翻译结果：</b>
+  <br>{{ translatedFile }}
 </pre>
 <dl class="dl-horizontal">
   <dt ng-if="document.subject">{{ 'document.subject' | translate }}</dt>

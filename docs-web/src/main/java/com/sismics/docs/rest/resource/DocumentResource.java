@@ -1182,38 +1182,56 @@ public class DocumentResource extends BaseResource {
     }
 
     /**
-     * 翻译上传的txt文件内容（百度翻译API版）。
+     * 翻译上传的txt、docx、pdf文件内容（百度翻译API版）。
      *
-     * @api {post} /document/translate_txt Translate txt file
-     * @apiName TranslateTxtFile
+     * @api {post} /document/translate_file Translate file
+     * @apiName TranslateFile
      * @apiGroup Document
-     * @apiParam {File} file txt文件
+     * @apiParam {File} file 文件（txt、docx、pdf）
      * @apiParam {String} lang 目标语言（如zh、en、fra等）
      * @apiSuccess {String} translated_text 翻译后的内容
-     * @apiError (client) FileReadError 无法读取txt文件
+     * @apiError (client) FileReadError 无法读取文件
      * @apiError (client) TranslateError 翻译失败
      * @apiPermission user
      * @apiVersion 1.0.0
      */
     @POST
-    @Path("/translate_txt")
+    @Path("/translate_file")
     @Consumes("multipart/form-data")
     @Produces("application/json")
-    public Response translateTxtFile(
+    public Response translateFile(
             @FormDataParam("file") FormDataBodyPart fileBodyPart,
             @FormDataParam("lang") String targetLang) {
         authenticate();
-        String text;
+        String fileName = fileBodyPart.getContentDisposition().getFileName().toLowerCase();
+        String text = null;
         try (InputStream is = fileBodyPart.getValueAs(InputStream.class)) {
-            text = new String(is.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+            if (fileName.endsWith(".txt")) {
+                text = new String(is.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+            } else if (fileName.endsWith(".docx")) {
+                org.apache.poi.xwpf.usermodel.XWPFDocument doc = new org.apache.poi.xwpf.usermodel.XWPFDocument(is);
+                StringBuilder sb = new StringBuilder();
+                for (org.apache.poi.xwpf.usermodel.XWPFParagraph para : doc.getParagraphs()) {
+                    sb.append(para.getText()).append(System.lineSeparator());
+                }
+                text = sb.toString();
+            } else if (fileName.endsWith(".pdf")) {
+                org.apache.pdfbox.pdmodel.PDDocument pdf = org.apache.pdfbox.pdmodel.PDDocument.load(is);
+                org.apache.pdfbox.text.PDFTextStripper stripper = new org.apache.pdfbox.text.PDFTextStripper();
+                text = stripper.getText(pdf);
+                pdf.close();
+            } else {
+                throw new ServerException("FileTypeError", "仅支持txt、docx、pdf文件");
+            }
         } catch (Exception e) {
-            logger.error("读取txt文件内容失败", e);
-            throw new ServerException("FileReadError", "无法读取txt文件内容", e);
+            logger.error("读取文件内容失败", e);
+            throw new ServerException("FileReadError", "无法读取文件内容", e);
         }
         if (text == null || text.isEmpty()) {
-            logger.warn("上传的txt文件内容为空");
+            logger.warn("上传的文件内容为空");
             return Response.ok().entity(Json.createObjectBuilder().add("translated_text", "").build()).build();
         }
+        // 百度翻译API参数
         String appid = "20250518002360376";
         String secret = "MXCxIkbv6m8BiUJ8JaZW";
         String salt = String.valueOf(System.currentTimeMillis());
