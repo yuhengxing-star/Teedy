@@ -224,4 +224,34 @@ angular.module('docs').controller('DocumentViewContent', function ($scope, $root
       }
     })
   };
+
+  // 支持TXT翻译功能
+  $scope.translatedTxt = null;
+  $scope.translatingTxt = false;
+  $scope.translateTxtError = null;
+  $scope.translateTxtFile = function() {
+    alert('方法已触发');
+    var fileInput = document.getElementById('txtFile');
+    if (!fileInput.files.length) {
+      $scope.translateTxtError = '请选择txt文件';
+      return;
+    }
+    var file = fileInput.files[0];
+    $scope.translatingTxt = true;
+    $scope.translateTxtError = null;
+    Upload.upload({
+      url: '../api/document/translate_txt',
+      data: {
+        file: file,
+        lang: $scope.selectedLang || 'en'
+      }
+    }).then(function(resp) {
+      $scope.translatedTxt = resp.data.translated_text;
+      $scope.translatingTxt = false;
+    }, function(err) {
+      $scope.translatedTxt = null;
+      $scope.translateTxtError = '翻译失败: ' + (err.data && err.data.message ? err.data.message : '');
+      $scope.translatingTxt = false;
+    });
+  };
 });

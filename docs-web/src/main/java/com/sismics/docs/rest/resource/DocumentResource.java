@@ -49,8 +49,11 @@ import com.sismics.util.JsonUtil;
 import com.sismics.util.context.ThreadLocalContext;
 import com.sismics.util.mime.MimeType;
 import jakarta.json.Json;
+import jakarta.json.JsonArray;
 import jakarta.json.JsonArrayBuilder;
+import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonReader;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.FormParam;
@@ -68,6 +71,9 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.glassfish.jersey.media.multipart.FormDataBodyPart;
 import org.glassfish.jersey.media.multipart.FormDataParam;
+import jakarta.ws.rs.Produces;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.mail.Message;
 import javax.mail.MessagingException;
@@ -96,6 +102,7 @@ import java.util.UUID;
  */
 @Path("/document")
 public class DocumentResource extends BaseResource {
+    private static final Logger logger = LoggerFactory.getLogger(DocumentResource.class);
 
     /**
      * Returns a document.
@@ -1096,5 +1103,161 @@ public class DocumentResource extends BaseResource {
                     .add("color", tagDto.getColor()));
         }
         return tags;
+    }
+
+    /**
+     * 翻译文档内容（百度翻译API版）。
+     *
+     * @api {post} /document/:id/translate Translate document
+     * @apiName TranslateDocument
+     * @apiGroup Document
+     * @apiParam {String} id Document ID
+     * @apiParam {String} lang Target language (如 zh, en, fr)
+     * @apiSuccess {String} translated_description 翻译后的描述
+     * @apiError (client) NotFound Document not found
+     * @apiPermission user
+     * @apiVersion 1.0.0
+     */
+    @POST
+    @Path("{id: [a-z0-9\\-]+}/translate")
+    @Consumes("application/x-www-form-urlencoded")
+    @Produces("application/json")
+    public Response translate(
+            @PathParam("id") String documentId,
+            @FormParam("lang") String targetLang) {
+        authenticate();
+        DocumentDao documentDao = new DocumentDao();
+        DocumentDto documentDto = documentDao.getDocument(documentId, PermType.READ, getTargetIdList(null));
+        if (documentDto == null) {
+            logger.warn("未找到文档: {}", documentId);
+            throw new NotFoundException();
+        }
+        String text = documentDto.getDescription();
+        if (text == null || text.isEmpty()) {
+            logger.warn("文档描述为空: {}", documentId);
+            return Response.ok().entity(Json.createObjectBuilder().add("translated_description", "").build()).build();
+        }
+        String appid = "20250518002360376";
+        String secret = "MXCxIkbv6m8BiUJ8JaZW";
+        String salt = String.valueOf(System.currentTimeMillis());
+        String signRaw = appid + text + salt + secret;
+        String sign = org.apache.commons.codec.digest.DigestUtils.md5Hex(signRaw);
+        String url = "https://fanyi-api.baidu.com/api/trans/vip/translate";
+        okhttp3.OkHttpClient client = new okhttp3.OkHttpClient();
+        okhttp3.HttpUrl httpUrl = okhttp3.HttpUrl.parse(url).newBuilder()
+                .addQueryParameter("q", text)
+                .addQueryParameter("from", "auto")
+                .addQueryParameter("to", targetLang)
+                .addQueryParameter("appid", appid)
+                .addQueryParameter("salt", salt)
+                .addQueryParameter("sign", sign)
+                .build();
+        logger.info("百度翻译API参数: appid={}, salt={}, sign={}, lang={}, text.length={}", appid, salt, sign, targetLang, text.length());
+        logger.debug("请求URL: {}", httpUrl);
+        okhttp3.Request request = new okhttp3.Request.Builder()
+                .url(httpUrl)
+                .get()
+                .build();
+        String translated = "";
+        try {
+            okhttp3.Response response = client.newCall(request).execute();
+            String resp = response.body() != null ? response.body().string() : "";
+            logger.info("百度翻译API响应: {}", resp);
+            JsonReader reader = Json.createReader(new java.io.StringReader(resp));
+            JsonObject obj = reader.readObject();
+            if (obj.containsKey("trans_result")) {
+                JsonArray arr = obj.getJsonArray("trans_result");
+                if (!arr.isEmpty()) {
+                    translated = arr.getJsonObject(0).getString("dst", "");
+                }
+            } else if (obj.containsKey("error_msg")) {
+                logger.error("百度翻译API错误: {}", obj.getString("error_msg"));
+                throw new ServerException("TranslateError", "百度翻译API错误: " + obj.getString("error_msg"));
+            }
+        } catch (Exception e) {
+            logger.error("调用百度翻译API异常", e);
+            throw new ServerException("TranslateError", "翻译失败: " + e.getMessage(), e);
+        }
+        return Response.ok().entity(Json.createObjectBuilder().add("translated_description", translated).build()).build();
+    }
+
+    /**
+     * 翻译上传的txt文件内容（百度翻译API版）。
+     *
+     * @api {post} /document/translate_txt Translate txt file
+     * @apiName TranslateTxtFile
+     * @apiGroup Document
+     * @apiParam {File} file txt文件
+     * @apiParam {String} lang 目标语言（如zh、en、fra等）
+     * @apiSuccess {String} translated_text 翻译后的内容
+     * @apiError (client) FileReadError 无法读取txt文件
+     * @apiError (client) TranslateError 翻译失败
+     * @apiPermission user
+     * @apiVersion 1.0.0
+     */
+    @POST
+    @Path("/translate_txt")
+    @Consumes("multipart/form-data")
+    @Produces("application/json")
+    public Response translateTxtFile(
+            @FormDataParam("file") FormDataBodyPart fileBodyPart,
+            @FormDataParam("lang") String targetLang) {
+        authenticate();
+        String text;
+        try (InputStream is = fileBodyPart.getValueAs(InputStream.class)) {
+            text = new String(is.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            logger.error("读取txt文件内容失败", e);
+            throw new ServerException("FileReadError", "无法读取txt文件内容", e);
+        }
+        if (text == null || text.isEmpty()) {
+            logger.warn("上传的txt文件内容为空");
+            return Response.ok().entity(Json.createObjectBuilder().add("translated_text", "").build()).build();
+        }
+        String appid = "20250518002360376";
+        String secret = "MXCxIkbv6m8BiUJ8JaZW";
+        String salt = String.valueOf(System.currentTimeMillis());
+        String signRaw = appid + text + salt + secret;
+        String sign = org.apache.commons.codec.digest.DigestUtils.md5Hex(signRaw);
+        String url = "https://fanyi-api.baidu.com/api/trans/vip/translate";
+        okhttp3.OkHttpClient client = new okhttp3.OkHttpClient();
+        okhttp3.HttpUrl httpUrl = okhttp3.HttpUrl.parse(url).newBuilder()
+                .addQueryParameter("q", text)
+                .addQueryParameter("from", "auto")
+                .addQueryParameter("to", targetLang)
+                .addQueryParameter("appid", appid)
+                .addQueryParameter("salt", salt)
+                .addQueryParameter("sign", sign)
+                .build();
+        logger.info("百度翻译API参数: appid={}, salt={}, sign={}, lang={}, text.length={}", appid, salt, sign, targetLang, text.length());
+        logger.debug("请求URL: {}", httpUrl);
+        okhttp3.Request request = new okhttp3.Request.Builder()
+                .url(httpUrl)
+                .get()
+                .build();
+        String translated = "";
+        try {
+            okhttp3.Response response = client.newCall(request).execute();
+            String resp = response.body() != null ? response.body().string() : "";
+            logger.info("百度翻译API响应: {}", resp);
+            JsonReader reader = Json.createReader(new java.io.StringReader(resp));
+            JsonObject obj = reader.readObject();
+            if (obj.containsKey("trans_result")) {
+                JsonArray arr = obj.getJsonArray("trans_result");
+                StringBuilder sb = new StringBuilder();
+                for (int i = 0; i < arr.size(); i++) {
+                    sb.append(arr.getJsonObject(i).getString("dst", ""));
+                    if (i != arr.size() - 1) sb.append(System.lineSeparator());
+                }
+                translated = sb.toString();
+            } else if (obj.containsKey("error_msg")) {
+                logger.error("百度翻译API错误: {}", obj.getString("error_msg"));
+                throw new ServerException("TranslateError", "百度翻译API错误: " + obj.getString("error_msg"));
+            }
+        } catch (Exception e) {
+            logger.error("调用百度翻译API异常", e);
+            throw new ServerException("TranslateError", "翻译失败: " + e.getMessage(), e);
+        }
+        return Response.ok().entity(Json.createObjectBuilder().add("translated_text", translated).build()).build();
     }
 }
