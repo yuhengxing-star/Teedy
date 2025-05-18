@@ -10,4 +10,6 @@ insert into T_ROUTE_MODEL (RTM_ID_C, RTM_NAME_C, RTM_STEPS_C, RTM_CREATEDATE_D) 
 insert into T_ACL (ACL_ID_C, ACL_PERM_C, ACL_SOURCEID_C, ACL_TARGETID_C) values ('acl-admin-default-route-read', 'READ', 'default-document-review', 'administrators');
 insert into T_ACL (ACL_ID_C, ACL_PERM_C, ACL_SOURCEID_C, ACL_TARGETID_C) values ('acl-admin-default-route-write', 'WRITE', 'default-document-review', 'administrators');
 
+create table T_USER_REGISTER_REQUEST (URR_ID_C varchar(36) not null primary key,URR_USERNAME_C varchar(50) not null unique,URR_PASSWORD_C varchar(100) not null,URR_EMAIL_C varchar(100) not null,URR_STATUS_C varchar(20) not null,URR_CREATEDATE_D datetime not null,URR_DECISIONDATE_D datetime,URR_DECISIONADMINID_C varchar(50));
+
 update T_CONFIG set CFG_VALUE_C = '15' where CFG_ID_C = 'DB_VERSION';

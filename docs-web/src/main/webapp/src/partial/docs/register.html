@@ -1,0 +1,25 @@
+<div class="container">
+    <h2>注册新账号</h2>
+    <form name="registerForm" ng-submit="register()" novalidate>
+      <div class="form-group">
+        <label>用户名</label>
+        <input type="text" ng-model="user.username" required class="form-control" />
+      </div>
+      <div class="form-group">
+        <label>邮箱</label>
+        <input type="email" ng-model="user.email" required class="form-control" />
+      </div>
+      <div class="form-group">
+        <label>密码</label>
+        <input type="password" ng-model="user.password" required class="form-control" />
+      </div>
+      <div class="form-group">
+        <label>确认密码</label>
+        <input type="password" ng-model="user.passwordconfirm" required class="form-control" />
+      </div>
+      <button type="submit" class="btn btn-primary" ng-disabled="registerForm.$invalid">提交注册请求</button>
+      <div class="alert alert-success" ng-show="successMsg">{{successMsg}}</div>
+      <div class="alert alert-danger" ng-show="errorMsg">{{errorMsg}}</div>
+    </form>
+  </div>
+  

@@ -1,0 +1,24 @@
+<h2>注册请求审核</h2>
+<table class="table">
+  <thead>
+    <tr>
+      <th>用户名</th>
+      <th>邮箱</th>
+      <th>申请时间</th>
+      <th>操作</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr ng-repeat="req in requests">
+      <td>{{req.username}}</td>
+      <td>{{req.email}}</td>
+      <td>{{req.createDate | date:'yyyy-MM-dd HH:mm:ss'}}</td>
+      <td>
+        <button class="btn btn-success" ng-click="approve(req)">通过</button>
+        <button class="btn btn-danger" ng-click="reject(req)">拒绝</button>
+      </td>
+    </tr>
+  </tbody>
+</table>
+<div class="alert alert-success" ng-show="successMsg">{{successMsg}}</div>
+<div class="alert alert-danger" ng-show="errorMsg">{{errorMsg}}</div>
